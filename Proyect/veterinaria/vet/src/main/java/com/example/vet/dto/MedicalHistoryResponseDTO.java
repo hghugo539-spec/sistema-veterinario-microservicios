@@ -1,0 +1,42 @@
+package com.example.vet.dto;
+
+import java.time.LocalDate;
+
+public class MedicalHistoryResponseDTO {
+
+    private Integer idHistory;
+    private LocalDate date;
+    private String diagnosis;
+    private String treatment;
+    
+    // --- ¡ESTO FALTABA! ---
+    private String status; 
+    // ----------------------
+    
+    private PetSimpleResponseDTO pet;
+    private VeterinarianSimpleResponseDTO veterinarian;
+
+    // Getters y Setters
+    public Integer getIdHistory() { return idHistory; }
+    public void setIdHistory(Integer idHistory) { this.idHistory = idHistory; }
+
+    public LocalDate getDate() { return date; }
+    public void setDate(LocalDate date) { this.date = date; }
+
+    public String getDiagnosis() { return diagnosis; }
+    public void setDiagnosis(String diagnosis) { this.diagnosis = diagnosis; }
+
+    public String getTreatment() { return treatment; }
+    public void setTreatment(String treatment) { this.treatment = treatment; }
+
+    // --- Getter y Setter para status ---
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    // ----------------------------------
+
+    public PetSimpleResponseDTO getPet() { return pet; }
+    public void setPet(PetSimpleResponseDTO pet) { this.pet = pet; }
+
+    public VeterinarianSimpleResponseDTO getVeterinarian() { return veterinarian; }
+    public void setVeterinarian(VeterinarianSimpleResponseDTO veterinarian) { this.veterinarian = veterinarian; }
+}

@@ -1,0 +1,14 @@
+type Product {
+    id: ID!
+    name: String!
+    price: Float!
+    stock: Int!
+}
+
+type Query {
+    # Define nuestra consulta principal para obtener todos los productos
+    allProducts: [Product]!
+    
+    # Consulta para obtener un producto por ID
+    productById(id: ID!): Product
+}

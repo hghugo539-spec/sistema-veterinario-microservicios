@@ -1,0 +1,56 @@
+server:
+  port: 8080
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.http.server.reactive: DEBUG
+    org.springframework.web.reactive: DEBUG
+    reactor.netty: DEBUG
+
+spring:
+  application:
+    name: vet-gateway-service
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+          lower-case-service-id: true
+
+      routes:
+        # =========================================================
+        # RUTA 1: USERS SERVICE (Login y Registro)
+        # =========================================================
+        - id: users-service
+          uri: lb://VET-USERS-SERVICE
+          predicates:
+            - Path=/api/v1/auth/**, /api/v1/users/**
+          filters:
+            - RewritePath=/api/v1/(?<remaining>.*), /api/${remaining}
+
+        # =========================================================
+        # RUTA 2: CLINIC SERVICE (Clientes, Mascotas...)
+        # =========================================================
+        - id: clinic-service
+          uri: lb://VET-CLINIC-SERVICE
+          predicates:
+            # Lista completa de rutas del servicio Clinic
+            - Path=/api/v1/clients/**, /api/v1/pets/**, /api/v1/shifts/**, /api/v1/medical-history/**, /api/v1/species/**, /api/v1/vaccines/**, /api/v1/veterinarians/**, /api/v1/products/**, /api/v1/suppliers/**
+
+        # =========================================================
+        # RUTA 3: CATALOG SERVICE (GraphQL)
+        # =========================================================
+        - id: catalog-service
+          uri: lb://VET-CATALOG-SERVICE
+          predicates:
+            - Path=/api/v1/catalog/**, /graphql/**
+
+eureka:
+  client:
+    service-url:
+      # CRÍTICO PARA RENDER: Usamos la variable de entorno que inyectaremos
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE} 
+    register-with-eureka: true
+    fetch-registry: true
