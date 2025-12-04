@@ -10,6 +10,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer; // IMPORTANTE
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -31,33 +32,34 @@ public class SecurityConfig {
     @Autowired
     private AuthenticationProvider authenticationProvider;
 
-    // --- LISTA BLANCA ACTUALIZADA ---
+    // --- LISTA BLANCA MAESTRA (Swagger + Recursos Públicos) ---
     private static final String[] WHITE_LIST_URL = {
         "/api/v1/auth/**",
         "/v3/api-docs/**",
         "/swagger-ui/**",
         "/swagger-ui.html",
-        // Estas líneas son vitales para que cargue la interfaz gráfica de Swagger:
         "/swagger-resources/**",
         "/webjars/**",
-        "/actuator/**" // Para que Render sepa que la app está sana
+        "/actuator/**",
+        "/error"
     };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Aseguramos que use la config de CORS
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
             .authorizeHttpRequests(req -> req
-                // 1. REGLAS TÉCNICAS Y PÚBLICAS (Swagger, Docs, Actuator)
+                // 1. REGLAS TÉCNICAS Y PÚBLICAS
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Nota: WHITE_LIST_URL se maneja en el WebSecurityCustomizer abajo, 
+                // pero dejarlo aquí también no hace daño.
                 .requestMatchers(WHITE_LIST_URL).permitAll()
                 
-                // 1.B. LA REGLA FALTANTE: Permite acceso a /api/auth/register y /login sin versión
+                // Regla para /api/auth (Login/Registro sin versión)
                 .requestMatchers("/api/auth/**").permitAll() 
                 
                 // 2. LECTURA DE CATÁLOGOS PÚBLICOS/COMPARTIDOS (GET)
@@ -88,12 +90,20 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // --- EL CÓDIGO MÁGICO QUE NECESITAS ---
+    // Esto le dice a Spring Security: "Ignora por completo estas rutas, déjalas pasar sin mirar Token ni nada"
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(WHITE_LIST_URL);
+    }
+    // ---------------------------------------
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Ajusta estos orígenes según donde tengas tu Frontend en el futuro
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "https://vet-gateway-service.onrender.com")); 
+        // Ajusta los orígenes según necesites (localhost para pruebas, onrender para producción)
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
         configuration.setAllowCredentials(true);
