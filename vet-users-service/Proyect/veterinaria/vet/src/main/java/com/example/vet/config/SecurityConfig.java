@@ -31,24 +31,29 @@ public class SecurityConfig {
     @Autowired
     private AuthenticationProvider authenticationProvider;
 
+    // --- LISTA BLANCA ACTUALIZADA ---
     private static final String[] WHITE_LIST_URL = {
         "/api/v1/auth/**",
         "/v3/api-docs/**",
         "/swagger-ui/**",
-        "/swagger-ui.html"
+        "/swagger-ui.html",
+        // Estas líneas son vitales para que cargue la interfaz gráfica de Swagger:
+        "/swagger-resources/**",
+        "/webjars/**",
+        "/actuator/**" // Para que Render sepa que la app está sana
     };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            
             .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Aseguramos que use la config de CORS
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
             .authorizeHttpRequests(req -> req
-                // 1. REGLAS TÉCNICAS Y PÚBLICAS
+                // 1. REGLAS TÉCNICAS Y PÚBLICAS (Swagger, Docs, Actuator)
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(WHITE_LIST_URL).permitAll()
                 
@@ -68,7 +73,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/medical-history/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_CLIENT")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/medical-history/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_CLIENT")
                 
-                // 4. REGLAS EXCLUSIVAS DE ADMIN (Gestiión de datos críticos)
+                // 4. REGLAS EXCLUSIVAS DE ADMIN (Gestión de datos críticos)
                 .requestMatchers(HttpMethod.PUT, "/api/v1/medical-history/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/v1/products/**").hasAuthority("ROLE_ADMIN") 
                 .requestMatchers("/api/v1/services/**").hasAuthority("ROLE_ADMIN")
@@ -87,10 +92,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+        // Ajusta estos orígenes según donde tengas tu Frontend en el futuro
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "https://vet-gateway-service.onrender.com")); 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
-        configuration.setAllowCredentials(true );
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
