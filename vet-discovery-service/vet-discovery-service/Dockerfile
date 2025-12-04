@@ -1,24 +1,28 @@
-# Usa una imagen base de Java con Maven para compilar
-FROM maven:3.8.5-openjdk-17 AS build
+# --- Primera etapa: Construcción (Build) ---
+# CAMBIO: Usamos una imagen de Maven basada en Eclipse Temurin (más estable y moderna)
+FROM maven:3.9.9-eclipse-temurin-17 AS build
 
-# Copia todo el código fuente al contenedor
-COPY . /app
 WORKDIR /app
 
-# Construye el proyecto y crea el archivo JAR
-RUN mvn clean install -DskipTests
+# 1. Copiamos primero el pom.xml y descargamos dependencias.
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-# --- Segunda etapa: Imagen final ligera para ejecución ---
-# Usa una imagen base de Java para ejecutar el JAR
-FROM openjdk:17-jdk-slim
+# 2. Copiamos el código fuente y compilamos
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Crea la carpeta de la aplicación
-RUN mkdir /app
-# Copia el JAR generado en la etapa 'build' al contenedor de ejecución
-COPY --from=build /app/target/vet-discovery-service-*.jar /app/app.jar
+# --- Segunda etapa: Ejecución (Run) ---
+# CAMBIO: La imagen 'openjdk' está deprecada. Usamos eclipse-temurin JRE (más ligera, solo para correr Java).
+FROM eclipse-temurin:17-jre
 
-# Define el puerto que expone la aplicación
+WORKDIR /app
+
+# Copiamos el JAR generado.
+COPY --from=build /app/target/vet-discovery-service-*.jar app.jar
+
+# Puerto por defecto de Eureka Server
 EXPOSE 8761
 
-# Comando para ejecutar la aplicación
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Ejecutamos la aplicación
+ENTRYPOINT ["java", "-jar", "app.jar"]

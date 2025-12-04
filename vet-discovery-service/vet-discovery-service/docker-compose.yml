@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: vet-discovery-service
+    env: docker
+    plan: free # O 'starter' si vas a pagar
+    region: oregon # O la que prefieras
+    
+    # Render buscará el Dockerfile automáticamente en la raíz
+    dockerContext: .
+    dockerfilePath: Dockerfile
+
+    # Variables de entorno para la nube
+    envVars:
+      - key: SERVER_PORT
+        value: 8761
+      # IMPORTANTE: El plan gratuito tiene solo 512MB de RAM.
+      # Limitamos Java a ~350MB para dejar espacio al sistema operativo del contenedor
+      # y evitar que Render mate el proceso por falta de memoria.
+      - key: JAVA_TOOL_OPTIONS
+        value: "-Xms128m -Xmx350m"
+
+    # Configuración de salud (Health Check)
+    healthCheckPath: /actuator/health
+    initialDelaySeconds: 60 # Java tarda en arrancar, le damos tiempo
