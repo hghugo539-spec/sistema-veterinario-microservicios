@@ -10,7 +10,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer; // <--- IMPORTANTE
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer; // <--- IMPORTANTE: Importar esto
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -32,13 +32,13 @@ public class SecurityConfig {
     @Autowired
     private AuthenticationProvider authenticationProvider;
 
-    // --- LISTA BLANCA COMPLETA (Actualizada) ---
+    // --- LISTA BLANCA ACTUALIZADA (Agregué lo que faltaba para Swagger) ---
     private static final String[] WHITE_LIST_URL = {
         "/v3/api-docs/**",
         "/swagger-ui/**",
         "/swagger-ui.html",
         "/api/auth/**",
-        // 👇 FALTABAN ESTOS PARA QUE SWAGGER CARGUE BIEN 👇
+        // 👇 ESTOS SON NUEVOS (Necesarios para que cargue la página azul)
         "/swagger-resources/**",
         "/webjars/**",
         "/actuator/**",
@@ -58,7 +58,7 @@ public class SecurityConfig {
                 .requestMatchers(WHITE_LIST_URL).permitAll()
 
                 // ============================================================
-                // TUS REGLAS DE LA CLÍNICA (MANTENIDAS)
+                // TUS REGLAS ORIGINALES (INTACTAS)
                 // ============================================================
                 
                 // CREACIÓN (POST) - USUARIO y ADMIN
@@ -99,17 +99,18 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // --- LA BALA DE PLATA: IGNORAR SEGURIDAD EN SWAGGER ---
+    // --- EL CÓDIGO NUEVO QUE NECESITAS AGREGAR ---
+    // Esto hace que Spring Security ignore Swagger por completo (evita el error 403)
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring().requestMatchers(WHITE_LIST_URL);
     }
+    // ---------------------------------------------
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // He agregado "*" para facilitar pruebas desde cualquier lado si fuera necesario, 
-        // pero mantuve tus dominios locales.
+        // Mantuve tus dominios y agregué "*" temporalmente por si pruebas desde otro lado
         configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
