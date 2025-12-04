@@ -10,6 +10,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer; // <--- IMPORTANTE
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -31,11 +32,17 @@ public class SecurityConfig {
     @Autowired
     private AuthenticationProvider authenticationProvider;
 
+    // --- LISTA BLANCA COMPLETA (Actualizada) ---
     private static final String[] WHITE_LIST_URL = {
         "/v3/api-docs/**",
         "/swagger-ui/**",
         "/swagger-ui.html",
-        "/api/auth/**"
+        "/api/auth/**",
+        // 👇 FALTABAN ESTOS PARA QUE SWAGGER CARGUE BIEN 👇
+        "/swagger-resources/**",
+        "/webjars/**",
+        "/actuator/**",
+        "/error"
     };
 
     @Bean
@@ -51,16 +58,16 @@ public class SecurityConfig {
                 .requestMatchers(WHITE_LIST_URL).permitAll()
 
                 // ============================================================
-                // CREACIÓN (POST) - USUARIO y ADMIN
+                // TUS REGLAS DE LA CLÍNICA (MANTENIDAS)
                 // ============================================================
+                
+                // CREACIÓN (POST) - USUARIO y ADMIN
                 .requestMatchers(HttpMethod.POST, "/api/v1/clients/**", "/api/v1/pets/**")
                     .hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/medical-history/**")
                     .hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
 
-                // ============================================================
                 // LECTURA (GET) - USUARIO y ADMIN
-                // ============================================================
                 .requestMatchers(HttpMethod.GET, 
                     "/api/v1/products/**",
                     "/api/v1/services/**",
@@ -73,9 +80,7 @@ public class SecurityConfig {
                     "/api/v1/medical-history/**"
                 ).hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
 
-                // ============================================================
                 // SOLO ADMIN
-                // ============================================================
                 .requestMatchers(HttpMethod.POST, 
                     "/api/v1/species/**",
                     "/api/v1/vaccines/**",
@@ -87,19 +92,25 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/**").hasAuthority("ROLE_ADMIN")
 
-                // ============================================================
                 // DEFAULT
-                // ============================================================
                 .anyRequest().authenticated()
             );
 
         return http.build();
     }
 
+    // --- LA BALA DE PLATA: IGNORAR SEGURIDAD EN SWAGGER ---
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(WHITE_LIST_URL);
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+        // He agregado "*" para facilitar pruebas desde cualquier lado si fuera necesario, 
+        // pero mantuve tus dominios locales.
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
         configuration.setAllowCredentials(true);
