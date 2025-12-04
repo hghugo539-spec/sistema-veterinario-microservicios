@@ -1,12 +1,13 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
+  address: 0.0.0.0
 
 logging:
   level:
-    org.springframework.cloud.gateway: TRACE
-    org.springframework.http.server.reactive: DEBUG
-    org.springframework.web.reactive: DEBUG
-    reactor.netty: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.http.server.reactive: INFO
+    org.springframework.web.reactive: INFO
+    reactor.netty: INFO
 
 spring:
   application:
@@ -16,12 +17,12 @@ spring:
     gateway:
       discovery:
         locator:
-          enabled: false
+          enabled: true          # <-- OBLIGATORIO en Render
           lower-case-service-id: true
 
       routes:
         # =========================================================
-        # RUTA 1: USERS SERVICE (Login y Registro)
+        # USERS SERVICE
         # =========================================================
         - id: users-service
           uri: lb://VET-USERS-SERVICE
@@ -31,16 +32,19 @@ spring:
             - RewritePath=/api/v1/(?<remaining>.*), /api/${remaining}
 
         # =========================================================
-        # RUTA 2: CLINIC SERVICE (Clientes, Mascotas...)
+        # CLINIC SERVICE
         # =========================================================
         - id: clinic-service
           uri: lb://VET-CLINIC-SERVICE
           predicates:
-            # Lista completa de rutas del servicio Clinic
-            - Path=/api/v1/clients/**, /api/v1/pets/**, /api/v1/shifts/**, /api/v1/medical-history/**, /api/v1/species/**, /api/v1/vaccines/**, /api/v1/veterinarians/**, /api/v1/products/**, /api/v1/suppliers/**
+            - Path=/api/v1/clients/**, /api/v1/pets/**,
+                   /api/v1/shifts/**, /api/v1/medical-history/**,
+                   /api/v1/species/**, /api/v1/vaccines/**,
+                   /api/v1/veterinarians/**, /api/v1/products/**,
+                   /api/v1/suppliers/**
 
         # =========================================================
-        # RUTA 3: CATALOG SERVICE (GraphQL)
+        # CATALOG SERVICE
         # =========================================================
         - id: catalog-service
           uri: lb://VET-CATALOG-SERVICE
@@ -50,7 +54,13 @@ spring:
 eureka:
   client:
     service-url:
-      # CRÍTICO PARA RENDER: Usamos la variable de entorno que inyectaremos
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE} 
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL}
     register-with-eureka: true
     fetch-registry: true
+
+  instance:
+    hostname: ${RENDER_EXTERNAL_HOSTNAME}   # <--- MUY IMPORTANTE
+    preferIpAddress: false
+    instanceId: ${spring.application.name}:${random.value}
+    leaseRenewalIntervalInSeconds: 10
+    leaseExpirationDurationInSeconds: 30
